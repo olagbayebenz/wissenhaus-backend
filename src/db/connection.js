@@ -7,7 +7,10 @@ const connectionString = (process.env.DATABASE_URL || '').includes('?')
 
 const pool = new Pool({
   connectionString,
-  ssl: { rejectUnauthorized: false }
+  ssl: {
+    rejectUnauthorized: false,
+    sslmode: 'require'
+  }
 });
 
 pool.on('connect', () => {
