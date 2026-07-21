@@ -3,6 +3,44 @@ const router = express.Router();
 const pool = require('../db/connection');
 const validators = require('../utils/validators');
 
+// Generic submission handler (for all forms)
+router.post('/', async (req, res, next) => {
+  try {
+    const { firstName, lastName, email, phone, city, experience, type, submittedAt } = req.body;
+
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ error: 'Missing required fields: firstName, lastName, email' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO submissions (type, name, email, phone, data, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       RETURNING id, created_at`,
+      [
+        type || 'general',
+        `${firstName} ${lastName}`,
+        email,
+        phone || null,
+        JSON.stringify({ firstName, lastName, email, phone, city, experience, type, submittedAt }),
+        submittedAt || new Date().toISOString(),
+        new Date().toISOString()
+      ]
+    );
+
+    const submission = Array.isArray(result.rows) ? result.rows[0] : result;
+
+    res.status(201).json({
+      success: true,
+      id: submission.id,
+      message: 'Thank you for your submission! We will review it shortly and contact you if needed.',
+      submittedAt: submission.created_at
+    });
+  } catch (err) {
+    console.error('Submission error:', err);
+    next(err);
+  }
+});
+
 // Submit volunteer application
 router.post('/volunteer', async (req, res, next) => {
   try {
