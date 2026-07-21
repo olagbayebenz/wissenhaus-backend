@@ -1,16 +1,16 @@
 const { Pool } = require('pg');
 
-// Force IPv4 and SSL for Supabase compatibility
+// Disable SSL certificate validation for self-signed certs
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+// Force IPv4 for Railway compatibility
 const connectionString = (process.env.DATABASE_URL || '').includes('?')
-  ? `${process.env.DATABASE_URL}&sslmode=require&family=4`
-  : `${process.env.DATABASE_URL}?sslmode=require&family=4`;
+  ? `${process.env.DATABASE_URL}&family=4`
+  : `${process.env.DATABASE_URL}?family=4`;
 
 const pool = new Pool({
   connectionString,
-  ssl: {
-    rejectUnauthorized: false,
-    sslmode: 'require'
-  }
+  ssl: true
 });
 
 pool.on('connect', () => {
