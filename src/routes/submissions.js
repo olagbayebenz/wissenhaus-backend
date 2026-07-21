@@ -14,7 +14,7 @@ router.post('/', async (req, res, next) => {
 
     const result = await pool.query(
       `INSERT INTO submissions (type, name, email, phone, data, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, created_at`,
       [
         type || 'general',

@@ -1,7 +1,7 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const db = require('./connection');
+const pool = require('./connection');
 
 async function migrate() {
   try {
@@ -13,13 +13,15 @@ async function migrate() {
     const statements = schema.split(';').map(s => s.trim()).filter(s => s.length > 0);
 
     for (const statement of statements) {
-      await db.run(statement);
+      await pool.query(statement);
     }
 
     console.log('✅ Database migrations completed successfully');
+    await pool.end();
     process.exit(0);
   } catch (err) {
     console.error('❌ Migration failed:', err.message);
+    await pool.end();
     process.exit(1);
   }
 }
