@@ -46,13 +46,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Export app for Vercel serverless
-module.exports = app;
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Wissen-Haus API running on port ${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+});
 
-// Start server only in development (not on Vercel)
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`🚀 Wissen-Haus API running on port ${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  });
-}
+module.exports = app;
