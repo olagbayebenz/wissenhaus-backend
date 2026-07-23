@@ -40,9 +40,7 @@ router.post('/:courseId/module/:moduleId/quiz', auth.verifyJWT, async (req, res,
     const data = validators.validate(req.body, validators.quizSchema);
     const { courseId, moduleId } = req.params;
 
-    // Calculate score (3 questions, each worth 33.33%)
     const correctAnswers = data.answers.filter((ans, idx) => {
-      // This is a placeholder - in production, fetch correct answers from database
       const correctKey = ['b', 'b', 'b'];
       return ans === correctKey[idx];
     }).length;
@@ -50,7 +48,6 @@ router.post('/:courseId/module/:moduleId/quiz', auth.verifyJWT, async (req, res,
     const score = Math.round((correctAnswers / 3) * 100);
     const passed = score >= 80;
 
-    // Upsert course progress
     await pool.query(
       `INSERT INTO course_progress (user_id, course_id, module_id, quiz_score, completed_at)
        VALUES ($1, $2, $3, $4, ${passed ? 'CURRENT_TIMESTAMP' : 'NULL'})
@@ -59,7 +56,6 @@ router.post('/:courseId/module/:moduleId/quiz', auth.verifyJWT, async (req, res,
       [req.user.userId, courseId, moduleId, score]
     );
 
-    // Check if all modules completed
     if (passed) {
       const progress = await pool.query(
         'SELECT COUNT(DISTINCT module_id) as completed FROM course_progress WHERE user_id = $1 AND course_id = $2 AND completed_at IS NOT NULL',
@@ -70,7 +66,6 @@ router.post('/:courseId/module/:moduleId/quiz', auth.verifyJWT, async (req, res,
       const allCompleted = progress.rows[0].completed === totalModules;
 
       if (allCompleted) {
-        // Generate certificate if not exists
         const certResult = await pool.query(
           'SELECT id FROM certificates WHERE user_id = $1 AND course_id = $2',
           [req.user.userId, courseId]

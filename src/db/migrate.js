@@ -9,7 +9,6 @@ async function migrate() {
 
     console.log('🚀 Running database migrations...');
 
-    // Split statements by semicolon and execute individually
     const statements = schema.split(';').map(s => s.trim()).filter(s => s.length > 0);
 
     for (const statement of statements) {

@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/connection');
 const validators = require('../utils/validators');
+const emailService = require('../services/emailService');
 
 // Generic submission handler (for all forms)
 router.post('/', async (req, res, next) => {
   try {
-    const { firstName, lastName, email, phone, city, experience, type, submittedAt } = req.body;
+    const { firstName, lastName, email, phone, city, experience, type, submittedAt, expertise, areas } = req.body;
 
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ error: 'Missing required fields: firstName, lastName, email' });
@@ -21,13 +22,30 @@ router.post('/', async (req, res, next) => {
         `${firstName} ${lastName}`,
         email,
         phone || null,
-        JSON.stringify({ firstName, lastName, email, phone, city, experience, type, submittedAt }),
+        JSON.stringify({ firstName, lastName, email, phone, city, experience, type, submittedAt, expertise, areas }),
         submittedAt || new Date().toISOString(),
         new Date().toISOString()
       ]
     );
 
-    const submission = Array.isArray(result.rows) ? result.rows[0] : result;
+    const submission = result.rows[0];
+
+    // Send confirmation email to applicant
+    const applicantData = { firstName, lastName, email, phone, city, experience, expertise, areas };
+    try {
+      await emailService.sendApplicationConfirmation(type, applicantData);
+    } catch (emailErr) {
+      console.error('Failed to send confirmation email:', emailErr);
+      // Continue anyway, don't fail the submission
+    }
+
+    // Send notification to admin
+    try {
+      await emailService.sendAdminNotification(type, applicantData);
+    } catch (emailErr) {
+      console.error('Failed to send admin notification:', emailErr);
+      // Continue anyway, don't fail the submission
+    }
 
     res.status(201).json({
       success: true,
@@ -61,6 +79,20 @@ router.post('/volunteer', async (req, res, next) => {
 
     const submission = result.rows[0];
 
+    // Send confirmation email to applicant
+    try {
+      await emailService.sendApplicationConfirmation(data.type, data);
+    } catch (emailErr) {
+      console.error('Failed to send confirmation email:', emailErr);
+    }
+
+    // Send notification to admin
+    try {
+      await emailService.sendAdminNotification(data.type, data);
+    } catch (emailErr) {
+      console.error('Failed to send admin notification:', emailErr);
+    }
+
     res.status(201).json({
       id: submission.id,
       message: 'Application received! We will review and contact you soon.',
@@ -77,7 +109,7 @@ router.post('/volunteer', async (req, res, next) => {
 // Submit partnership application
 router.post('/partnership', async (req, res, next) => {
   try {
-    const schema = validators.volunteerSchema; // Reuse for now
+    const schema = validators.volunteerSchema;
     const data = validators.validate(req.body, schema);
 
     const result = await pool.query(

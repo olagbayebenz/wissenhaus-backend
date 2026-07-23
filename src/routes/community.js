@@ -56,7 +56,6 @@ router.post('/threads', auth.verifyJWT, async (req, res, next) => {
 
     const thread = result.rows[0];
 
-    // Create initial post
     await pool.query(
       'INSERT INTO posts (thread_id, user_id, content) VALUES ($1, $2, $3)',
       [thread.id, req.user.userId, data.content]
@@ -82,10 +81,8 @@ router.get('/threads/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Increment views
     await pool.query('UPDATE threads SET views = views + 1 WHERE id = $1', [id]);
 
-    // Get thread
     const threadResult = await pool.query(
       `SELECT t.id, t.title, t.category, t.content, t.views, t.created_at,
               u.name as author_name, u.email as author_email
@@ -101,7 +98,6 @@ router.get('/threads/:id', async (req, res, next) => {
 
     const thread = threadResult.rows[0];
 
-    // Get posts
     const postsResult = await pool.query(
       `SELECT p.id, p.content, p.created_at,
               u.name as author_name
@@ -138,7 +134,6 @@ router.post('/threads/:id/posts', auth.verifyJWT, async (req, res, next) => {
     const data = validators.validate(req.body, validators.postSchema);
     const { id } = req.params;
 
-    // Check thread exists
     const threadCheck = await pool.query('SELECT id FROM threads WHERE id = $1', [id]);
     if (threadCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Thread not found' });
